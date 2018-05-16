@@ -10,7 +10,7 @@
 #define DS_INIT			(0x10)
 #define CS_TASK_INIT		(0x18+3)
 #define DS_TASK_INIT		(0x20+3)
-#define SS_TSS			(0x28)
+#define SS_TSS			(0x28+3)
 #define SS_TASK_A_CODE		(0x30+3)
 #define SS_TASK_A_DATA		(0x38+3)
 #define SS_TASK_B_CODE		(0x40+3)
