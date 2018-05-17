@@ -1,4 +1,5 @@
 #include "memmap.h"
+#include "clock.h"
 
 	.global start
 
@@ -62,12 +63,37 @@ dummy_isr:
 	/* need update ds, es, fs, gs */
 	jmp .
 
+timer_isr:
+	jmp .
+
 idt:
+	/* internal exceptions */
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
 	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
 	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
 
+	/* outside irq */
+	.quad 0x0000EE0000087CCD // 0x7CCB is fixed if uppon has no change
+
 idt_desc:
-	.word 8*2-1
+	.word 8*21-1
 	.long idt
 
 protected_mode_start:
@@ -77,11 +103,31 @@ protected_mode_start:
 	mov %ax, %fs
 	mov %ax, %gs
 
+	/* CPU init */
 	lidt idt_desc
+
+	/* PIC init */
+pic_init:
+	movb $0xff, %al
+	out %al, $0xa1
+	out %al, $0x21
 
 	mov $SS_TSS, %ax
 	ltr %ax
 
+	/* now periphals */
+
+timer_init:
+	movb $0x36, %al
+	out %al, $0x43
+	movb $TIMER_DIVIDER_LOW, %al
+	out %al, $0x40
+	movb $TIMER_DIVIDER_HIGH, %al
+	out %al, $0x40
+
+	/* now tasks */
+
+enter_user_mode:
 	pushl $DS_TASK_INIT
 	pushl $STACK_TASK_INIT
 	pushfl
@@ -95,8 +141,6 @@ user_mode_start:
 	mov %ax, %es
 	mov %ax, %fs
 	mov %ax, %gs
-
-	int $0
 
 	jmp .
 
