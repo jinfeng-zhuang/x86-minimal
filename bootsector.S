@@ -59,11 +59,12 @@ gdt_desc:
 	.long gdt
 
 dummy_isr:
+	/* need update ds, es, fs, gs */
 	jmp .
 
 idt:
-	.quad 0x0000870000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000870000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
 
 idt_desc:
 	.word 8*2-1
@@ -95,7 +96,7 @@ user_mode_start:
 	mov %ax, %fs
 	mov %ax, %gs
 
-	int $1
+	int $0
 
 	jmp .
 
