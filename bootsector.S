@@ -62,6 +62,14 @@ dummy_isr:
 	jmp .
 
 timer_isr:
+	movb $0x20, %al
+	outb %al, $0x20
+	mov $'z', %al
+	mov $0x3F8, %dx
+	out %al, %dx
+	iret
+
+keyboard_isr:
 	jmp .
 
 idt:
@@ -83,20 +91,16 @@ idt:
 	.quad 0x0000EE0000087CBB
 	.quad 0x0000EE0000087CBB
 
-	/* vector 0 - 31 are reserved by intel internal exception
-	 * however, they are used here
-	 * for the 512 size, we override these vector
-	 */
-
+	/* TODO offset should be 32 */
 	/* outside */
 	.quad 0x0000EE0000087CBD // timer
-	.quad 0x0000EE0000087CBD // keyboard
-	.quad 0x0000EE0000087CBD // keyboard
-	.quad 0x0000EE0000087CBD // keyboard
-	.quad 0x0000EE0000087CBD // keyboard
-	.quad 0x0000EE0000087CBD // keyboard
-	.quad 0x0000EE0000087CBD // keyboard
-	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CC9 // keyboard
+	.quad 0x0000EE0000087CC9
+	.quad 0x0000EE0000087CC9
+	.quad 0x0000EE0000087CC9
+	.quad 0x0000EE0000087CC9
+	.quad 0x0000EE0000087CC9
+	.quad 0x0000EE0000087CC9
 
 idt_desc:
 	.word 8*22-1
@@ -105,9 +109,7 @@ idt_desc:
 protected_mode_start:
 	mov $DS_INIT, %ax
 	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
+	/* TODO es, fs, gs */
 
 	/* CPU init */
 	lidt idt_desc
@@ -120,6 +122,7 @@ pic_init:
 	out %al, $0x20
 	out %al, $0xa0
 
+	/* TODO offset should be 32 */
 	movb $16, %al	// ICW2: specify the IRQ0 offset in vector table
 	out %al, $0x21
 	movb $24, %al
@@ -139,7 +142,6 @@ pic_init:
 	movb $0xff, %al
 	out %al, $0xA1
 
-/*
 timer_init:
 	movb $0x36, %al
 	out %al, $0x43
@@ -147,7 +149,6 @@ timer_init:
 	out %al, $0x40
 	movb $TIMER_DIVIDER_HIGH, %al
 	out %al, $0x40
-*/
 
 enter_user_mode:
 	pushl $DS_TASK_INIT
@@ -163,10 +164,7 @@ enter_user_mode:
 user_mode_start:
 	mov $DS_TASK_INIT, %ax
 	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-
+	/* TODO es, fs, gs */
 	jmp .
 
 /*-----------------------------------------------------*/
