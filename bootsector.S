@@ -11,13 +11,13 @@ start:
 
 	lgdt gdt_desc
 
-	in $0x92, %al
-	or 0x02, %al
-	out %al, $0x92
+	inb $0x92, %al
+	orb 0x2, %al
+	outb %al, $0x92
 
-	mov %cr0, %eax
-	or $1, %eax
-	mov %eax, %cr0
+	movl %cr0, %eax
+	orl $0x1, %eax
+	movl %eax, %cr0
 
 	ljmp $CS_INIT, $protected_mode_start
 	
@@ -52,11 +52,9 @@ gdt:
 	.quad 0x00CFFA000000FFFF // 0x18 ring 3 init task code
 	.quad 0x00CFF2000000FFFF // 0x20 ring 3 init task data
 	.quad 0x0000E9007C1DFFFF // 0x28 TSS, 0x7C1D is fixed
-	.quad 0x00CFFA000000FFFF // 0x30 ring 3 task A code
-	.quad 0x00CFF2000000FFFF // 0x38 ring 3 task A data
 
 gdt_desc:
-	.word 8*8-1
+	.word 8*6-1
 	.long gdt
 
 dummy_isr:
@@ -68,32 +66,40 @@ timer_isr:
 
 idt:
 	/* internal exceptions */
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
-	.quad 0x0000EE0000087CCB // 0x7CCB is fixed if uppon has no change
+	.quad 0x0000EE0000087CBB // 0
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB // 5
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB // 10
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBD // 13: general protection fault
+	.quad 0x0000EE0000087CBB
+	.quad 0x0000EE0000087CBB
 
-	/* outside irq */
-	.quad 0x0000EE0000087CCD // 0x7CCB is fixed if uppon has no change
+	/* vector 0 - 31 are reserved by intel internal exception
+	 * however, they are used here
+	 * for the 512 size, we override these vector
+	 */
+
+	/* outside */
+	.quad 0x0000EE0000087CBD // timer
+	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CBD // keyboard
+	.quad 0x0000EE0000087CBD // keyboard
 
 idt_desc:
-	.word 8*21-1
+	.word 8*22-1
 	.long idt
 
 protected_mode_start:
@@ -106,17 +112,34 @@ protected_mode_start:
 	/* CPU init */
 	lidt idt_desc
 
-	/* PIC init */
-pic_init:
-	movb $0xff, %al
-	out %al, $0xa1
-	out %al, $0x21
-
 	mov $SS_TSS, %ax
 	ltr %ax
 
-	/* now periphals */
+pic_init:
+	movb $0x11, %al // ICW1: cascade mode, edge trigger
+	out %al, $0x20
+	out %al, $0xa0
 
+	movb $16, %al	// ICW2: specify the IRQ0 offset in vector table
+	out %al, $0x21
+	movb $24, %al
+	out %al, $0xa1
+
+	movb $0x04, %al // ICW3: Pin 3 used to connect the slave 8259A
+	out %al, $0x21
+	movb $0x02, %al
+	out %al, $0xa1
+
+	movb $0x01, %al	// ICW4: 80x86 mode
+	out %al, $0x21
+	out %al, $0xA1
+
+	movb $0xfe, %al
+	out %al, $0x21
+	movb $0xff, %al
+	out %al, $0xA1
+
+/*
 timer_init:
 	movb $0x36, %al
 	out %al, $0x43
@@ -124,13 +147,15 @@ timer_init:
 	out %al, $0x40
 	movb $TIMER_DIVIDER_HIGH, %al
 	out %al, $0x40
-
-	/* now tasks */
+*/
 
 enter_user_mode:
 	pushl $DS_TASK_INIT
 	pushl $STACK_TASK_INIT
 	pushfl
+	popl %eax
+	orl $0x200, %eax
+	push %eax
 	pushl $CS_TASK_INIT
 	pushl $user_mode_start
 	iret
