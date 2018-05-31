@@ -103,7 +103,7 @@ idt:
 	.quad 0x0000EE0000087CC9
 
 idt_desc:
-	.word 8*22-1
+	.word 8*24-1
 	.long idt
 
 protected_mode_start:
